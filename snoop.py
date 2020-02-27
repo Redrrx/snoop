@@ -38,13 +38,13 @@ _____/ _|  _|\___/ \___/  .__/
                          _|     \033[37mv1.\033[34m1.2\033[31m_rus\033[0m\n
 """)
 
-print ("#Пример:\n cd ~/snoop\n python3 snoop.py -h \033[37m#справка по всем функциям ПО\033[0m\n" + 
-" python3 snoop.py --time 9 user \033[37m#поиск user-a, ожидание ответа от сайта ≤ 9с.\033[0m\n" + 
-" открыть 'snoop/results/*/user.[txt.html.csv]' \033[37m#изучить сохранённые результаты поиска\033[0m\n")
+print ("#Пример:\n cd ~/snoop\n python3 snoop.py -h \033[37m#List Help\033[0m\n" +
+" python3 snoop.py --time 9 user \033[37m#waiting for response  ≤ 9s.\033[0m\n" +
+" open 'snoop/results/*/user.[txt.html.csv]' \033[37m#Check result\033[0m\n")
 
 
-module_name = "Snoop: поиск никнейма по всем фронтам!"
-__version__ = "1.1.2_rus Ветка GNU/Linux"
+module_name = "Snoop: Searching nicknames!"
+__version__ = "1.1.2_rus Branch GNU/Linux"
 
 date = datetime.datetime.today()
 
@@ -58,7 +58,7 @@ proxy_list = []
 
 class ElapsedFuturesSession(FuturesSession):
     """
-    Расширяет 'FutureSession' для добавления метрики времени ответа к каждому запросу.
+    Extends 'FutureSession' to add response time metrics to each request.
 
     https://github.com/ross/requests-futures#working-in-the-background
     """
@@ -72,7 +72,7 @@ class ElapsedFuturesSession(FuturesSession):
 
         try:
             if isinstance(hooks['response'], (list, tuple)):
-# должен быть первым, поэтому мы не рассчитываем время выполнения других hooks.
+# should be the first, so we do not calculate the runtime of other hooks.
                 hooks['response'].insert(0, timing)
             else:
                 hooks['response'] = [timing, hooks['response']]
@@ -126,12 +126,12 @@ def print_not_found(social_network, response_time, verbose=False, color=True):
             Fore.WHITE + "]" +
             format_response_time(response_time, verbose) +
             Fore.GREEN + f" {social_network}:" +
-            Fore.YELLOW + " Увы!"))
+            Fore.YELLOW + " Alas!"))
     else:
         print(f"[-]{format_response_time(response_time, verbose)} {social_network}: Увы!")
 
 def print_invalid(social_network, msg, color=True):
-    """Ошибка вывода результата"""
+    """Error output result"""
     if color:
         print((Style.BRIGHT + Fore.WHITE + "[" +
             Fore.RED + "-" +
@@ -154,10 +154,10 @@ def get_response(request_future, error_type, social_network, verbose=False, retr
     except requests.exceptions.HTTPError as errh:
         print_error(errh, "HTTP Error:", social_network, verbose, color)
 
-# Сбой с прокси, дубль попытка.
+# Proxy Failed trying again.
     except requests.exceptions.ProxyError as errp:
         if retry_no>0 and len(proxy_list)>0:
-# Выбор нового прокси.
+# using another proxy.
             new_proxy = random.choice(proxy_list)
             new_proxy = f'{new_proxy.protocol}://{new_proxy.ip}:{new_proxy.port}'
             print(f'Retrying with {new_proxy}')
@@ -166,42 +166,42 @@ def get_response(request_future, error_type, social_network, verbose=False, retr
         else:
             print_error(errp, "Proxy error:", social_network, verbose, color)
     except requests.exceptions.ConnectionError as errc:
-        print_error(errc, "Ошибка соединения:", social_network, verbose, color)
+        print_error(errc, "Connection Error:", social_network, verbose, color)
     except requests.exceptions.Timeout as errt:
         print_error(errt, "Timeout ошибка:", social_network, verbose, color)
     except requests.exceptions.RequestException as err:
-        print_error(err, "Ошибка раскладки\nклавиатуры/*символов", social_network, verbose, color)
+        print_error(err, "Layout Error\nKeyboard/*characters", social_network, verbose, color)
     return None, "", -1
 
 
 def snoop(username, site_data, verbose=False, tor=False, unique_tor=False,
              proxy=None, print_found_only=False, timeout=None, color=True):
 
-    """Snoop Аналитика.
+    """Snoop Analysis.
 
-    Snoop ищет никнеймы на различных интернет-ресурсах.
+    Snoop looking for nicknames on various Internet resources.
 
-    Аргументы:
-    username               -- Разыскиваемый никнейм.
-    site_data              -- Snoop БД поддерживваемых сайтов 
-    verbose                -- Подробная вербализация
-    tor                    -- Служба Tor
-    unique_tor             -- Опция Tor: новая цепочка при поиске для каждого сайта
-    proxy                  -- Указание своего proxy
-    timeoutout                -- Ограничение времени на ожидание ответа сайта
-    color                  -- Монохромный/раскрашиваемый терминал
+    Arguments:
+    username               -- Selected Nickname/Username.
+    site_data              -- Snoop Supported Websites databases
+    verbose                -- Verbose
+    tor                    -- Tor Service
+    unique_tor             -- Tor arg
+    proxy                  -- what proxy to use
+    timeoutout             -- Timeout for reqs
+    color                  -- Monochrome or Colored terminal
 
-    Возвращаемые значения:
-    Словарь, содержащий результаты из отчета. Ключом словаря является название
-    сайта из БД, и значение другого словаря со следующими ключами::
-        url_main:                  URL основного сайта.
-        url_user:                  URL ведущий на пользователя (если такой аккаунт найден).
-        exists/статус:             Указание результатов теста на наличие аккаунта.
-        http_status/статус кода:   HTTP status code ответа сайта.
-        response_text:    Текст, который вернулся запрос-ответ от сайта (при ошибке соединения может отсутствовать)
+   Return Values:
+    A dictionary containing the results from the report. The dictionary key is the name
+    site from the database, and the meaning of another dictionary with the following keys:
+        url_main:                  URL main website.
+        url_user:                  URL Main User url if the account is found.
+        exists/статус:             Account tests results.
+        http_status/статус кода:   HTTP status code response.
+        response_text:    The text that returned the request-response from the site (if there is a connection error, it may be absent)
     """
 
-    print_info("разыскиваем:", username, color)
+    print_info("Searching for :", username, color)
 
 # Создать сеанс на основе методологии запроса.
     if tor or unique_tor:
@@ -250,7 +250,7 @@ def snoop(username, site_data, verbose=False, tor=False, unique_tor=False,
         if regex_check and re.search(regex_check, username) is None:
 # Не нужно делать проверку на сайте: если это имя пользователя не допускается.
             if not print_found_only:
-                print_invalid(social_network, "Недопустимый формат имени для данного сайта", color)
+                print_invalid(social_network, "invalid name format for this site", color)
 
             results_site["exists"] = "illegal"
             results_site["url_user"] = ""
@@ -386,7 +386,7 @@ def snoop(username, site_data, verbose=False, tor=False, unique_tor=False,
 
         elif error_type == "":
             if not print_found_only:
-                print_invalid(social_network, "*Пропуск", color)
+                print_invalid(social_network, "*Pass", color)
             exists = "error"
 
 # Сохранить сущ.флаг.
@@ -403,16 +403,15 @@ def snoop(username, site_data, verbose=False, tor=False, unique_tor=False,
 
 
 def timeout_check(value):
-    """Проверка: время ожидания ответа сайта.
+    """Verification: site response timeout.
 
-    Проверка опцией "--timeoutout" на достоверность.
+   Validation with the option --timeoutout.
 
-    Аргумент - указание в секундах.
+    Argument - an indication in seconds.
 
-    Возвращаемое значение - число в секундах, которое используется для timeoutout-а.
+    Return value - the number in seconds that is used for timeoutout.
 
-    Примечание:  Возникает исключение в случае, если время ожидания...
-    """
+      Note: An exception occurs if the timeout happens ...    """
     from argparse import ArgumentTypeError
 
     try:
